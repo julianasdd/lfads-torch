@@ -1,86 +1,115 @@
 _target_: lfads_torch.model.LFADS
 
-# --------- architecture --------- #
-encod_data_dim: 50
-encod_seq_len: 30
-recon_seq_len: ${model.encod_seq_len}
-ext_input_dim: 0
-ic_enc_seq_len: 0
-ic_enc_dim: 100
-ci_enc_dim: 100
-ci_lag: 1
-con_dim: 100
-co_dim: 6
-ic_dim: 100
-gen_dim: 100
-fac_dim: 50
+# ===================== ARCHITECTURE ===================== #
+# Dimensions and sequence lengths define the shape of each module.
 
-# --------- readin / readout --------- #
+encod_data_dim: 50        # Input feature dim per timestep to the encoders.
+                          # In PCR mode: number of PCs saved per trial (your stitched space).
+
+encod_seq_len: 30         # # of time bins the encoder sees (e.g., 30 bins at 20 ms = 600 ms).
+recon_seq_len: ${model.encod_seq_len}  # Length of sequence to reconstruct; tied to encoder length.
+
+ext_input_dim: 0          # Optional exogenous inputs to the generator (task cues, etc). 0 = none.
+
+# ---- Initial-Condition (IC) encoder ----
+ic_enc_seq_len: 0         # # of bins used by the IC encoder. 0 usually means “use all/ default.”
+ic_enc_dim: 100           # Hidden size of the IC encoder RNN.
+ic_dim: 100               # Dimensionality of the initial condition vector given to the generator at t=0.
+
+# ---- Controller encoders / outputs ----
+ci_enc_dim: 100           # Hidden size of the controller input encoder RNN (extracts fast inputs).
+ci_lag: 1                 # Delay (in bins) between controller output and when it reaches the generator.
+con_dim: 100              # Hidden size of the controller RNN (internal controller state).
+co_dim: 6                 # Dim of controller outputs injected into generator each step (latent “u_t”).
+
+# ---- Generator + Factors ----
+gen_dim: 100              # Hidden size of the generator RNN (produces latent trajectories).
+fac_dim: 50               # Dimensionality of factors (low-D latents). In PCR-tied mode,
+                          # set equal to the # of PCs if using pseudoinverse init for readout.
+
+# ================= READIN / READOUT (MULTISESSION) ================= #
+# These map between session-specific neural spaces and the common factor/PC space.
+
 readin:
   _target_: lfads_torch.modules.readin_readout.MultisessionReadin
-  datafile_pattern: ${datamodule.datafile_pattern}
+  datafile_pattern: ${datamodule.datafile_pattern}  # Glob for your per-session lfads_*.h5 files.
 
 readout:
   _target_: lfads_torch.modules.readin_readout.MultisessionReadout
-  datafile_pattern: ${datamodule.datafile_pattern}
+  datafile_pattern: ${datamodule.datafile_pattern}  # Matches readin sessions.
+  # NOTE (PCR mode): readout is initialized as pseudoinverse(readin) when configured that way in the model.
+  #                  That ties fac_dim to encod_data_dim (PC count) unless you explicitly use random init.
 
-# --------- augmentation --------- #
+# ========================= AUGMENTATION ============================ #
+# Applied during training to encourage robustness (e.g., Coordinated Dropout).
+
 train_aug_stack:
   _target_: lfads_torch.modules.augmentations.AugmentationStack
   transforms:
     - _target_: lfads_torch.modules.augmentations.CoordinatedDropout
-      cd_rate: 0.3 # sampled
-      cd_pass_rate: 0.0
-      ic_enc_seq_len: ${model.ic_enc_seq_len}
-  batch_order: [0]
-  loss_order: [0]
+      cd_rate: 0.3           # Proportion of inputs dropped in a coordinated fashion across units.
+      cd_pass_rate: 0.0      # Portion of dropped inputs that are still passed through (0 = fully dropped).
+      ic_enc_seq_len: ${model.ic_enc_seq_len}  # Keep augmentation consistent with IC encoder window.
+  batch_order: [0]            # Order in which transforms are applied across batch.
+  loss_order: [0]             # Which transforms contribute to loss (index into transforms list).
 infer_aug_stack:
   _target_: lfads_torch.modules.augmentations.AugmentationStack
+  # Empty = no augmentation at inference.
 
-# --------- priors / posteriors --------- #
+# ===================== PRIORS / POSTERIORS ======================== #
+# Variational components: priors on IC and controller outputs; observation model for spikes.
+
 reconstruction:
   _target_: lfads_torch.modules.recons.MultisessionReconstruction
   datafile_pattern: ${datamodule.datafile_pattern}
   recon:
-    _target_: lfads_torch.modules.recons.Poisson
-variational: True
+    _target_: lfads_torch.modules.recons.Poisson  # Poisson observation model (counts → rates).
+
+variational: True          # Use variational inference for ICs and controller outputs.
+
 co_prior:
   _target_: lfads_torch.modules.priors.AutoregressiveMultivariateNormal
-  tau: 10.0
-  nvar: 0.1
-  shape: ${model.co_dim}
+  tau: 10.0                # AR time constant (larger = smoother controller outputs u_t).
+  nvar: 0.1                # Innovation noise variance of the AR prior.
+  shape: ${model.co_dim}   # Dimensionality must match controller output dimension.
+
 ic_prior:
   _target_: lfads_torch.modules.priors.MultivariateNormal
-  mean: 0
-  variance: 0.1
-  shape: ${model.ic_dim}
-ic_post_var_min: 1.0e-4
+  mean: 0                  # Mean of IC prior.
+  variance: 0.1            # Variance of IC prior.
+  shape: ${model.ic_dim}   # Must match the IC latent dimension.
 
-# --------- misc --------- #
-dropout_rate: 0.02 # sampled
-cell_clip: 5.0
-loss_scale: 1.0e+4
-recon_reduce_mean: True
+ic_post_var_min: 1.0e-4    # Floor on posterior variance for stability (avoid collapse/numerical issues).
 
-# --------- learning rate --------- #
-lr_init: 4.0e-3
-lr_stop: 1.0e-5
-lr_decay: 0.95
-lr_patience: 6
-lr_adam_beta1: 0.9
-lr_adam_beta2: 0.999
-lr_adam_epsilon: 3.1623e-5
-lr_scheduler: False
+# ============================ MISC ================================ #
+dropout_rate: 0.02         # Standard dropout used in selected modules (not coordinated dropout).
+cell_clip: 5.0             # Clip RNN cell/hidden states to this magnitude (stability).
+loss_scale: 1.0e+4         # Scalar multiplier on reconstruction loss (numeric conditioning).
+recon_reduce_mean: True    # If True, average reconstruction loss over batch/time; else sum.
 
-# --------- regularization --------- #
-weight_decay: 0.0
-l2_start_epoch: 0
-l2_increase_epoch: 50
-l2_ic_enc_scale: 0.0
-l2_ci_enc_scale: 0.0
-l2_gen_scale: 0.0 # sampled
-l2_con_scale: 0.0 # sampled
-kl_start_epoch: 0
-kl_increase_epoch: 50
-kl_ic_scale: 0.0 # sampled
-kl_co_scale: 0.0 # sampled
+# ====================== LEARNING RATE / OPTIM ===================== #
+lr_init: 4.0e-3            # Initial LR for Adam.
+lr_stop: 1.0e-5            # Minimum LR threshold (may trigger plateau/early-stop logic elsewhere).
+lr_decay: 0.95             # Multiplicative decay factor when scheduler/plateau logic kicks in.
+lr_patience: 6             # Epochs without improvement before applying LR decay.
+lr_adam_beta1: 0.9         # Adam β1.
+lr_adam_beta2: 0.999       # Adam β2.
+lr_adam_epsilon: 3.1623e-5 # Adam ε (≈ 1e-5.5), helps with numerical stability.
+lr_scheduler: False        # If True, use an explicit scheduler; here it’s disabled (PBT may handle LR anyway).
+
+# ========================= REGULARIZATION ========================= #
+weight_decay: 0.0          # AdamW-style weight decay (L2 on parameters).
+
+# L2 penalties (applied to module weights, NOT data):
+l2_start_epoch: 0          # Epoch to start increasing L2 penalties.
+l2_increase_epoch: 50      # Epoch by which L2 penalties reach their target scales (linear ramp).
+l2_ic_enc_scale: 0.0       # L2 scale on IC encoder weights.
+l2_ci_enc_scale: 0.0       # L2 scale on controller encoder weights.
+l2_gen_scale: 0.0          # L2 scale on generator weights. (Often explored via PBT.)
+l2_con_scale: 0.0          # L2 scale on controller weights. (Often explored via PBT.)
+
+# KL penalties (on variational posteriors vs priors):
+kl_start_epoch: 0          # Epoch to start ramping KL penalties.
+kl_increase_epoch: 50      # Epoch by which KL penalties reach target scales (linear ramp).
+kl_ic_scale: 0.0           # KL scale for initial conditions posterior. (Often explored via PBT.)
+kl_co_scale: 0.0           # KL scale for controller outputs posterior. (Often explored via PBT.)

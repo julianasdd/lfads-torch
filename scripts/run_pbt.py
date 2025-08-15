@@ -16,7 +16,7 @@ from lfads_torch.run_model import run_model
 
 # ---------- OPTIONS ----------
 PROJECT_STR = "lfads-torch-example"
-DATASET_STR = "nlb_mc_maze"
+DATASET_STR = "rouse_multisession_PCR"
 RUN_TAG = datetime.now().strftime("%y%m%d") + "_examplePBT"
 RUN_DIR = Path("/snel/share/runs") / PROJECT_STR / DATASET_STR / RUN_TAG
 HYPERPARAM_SPACE = {
