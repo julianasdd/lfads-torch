@@ -18,7 +18,7 @@ from lfads_torch.run_model import run_model
 PROJECT_STR = "lfads-torch-example"
 DATASET_STR = "rouse_multisession_PCR"
 RUN_TAG = datetime.now().strftime("%y%m%d") + "_examplePBT"
-RUN_DIR = Path("/snel/share/runs") / PROJECT_STR / DATASET_STR / RUN_TAG
+RUN_DIR = Path("runs") / PROJECT_STR / DATASET_STR / RUN_TAG
 HYPERPARAM_SPACE = {
     "model.lr_init": HyperParam(
         1e-5, 5e-3, explore_wt=0.3, enforce_limits=True, init=4e-3
@@ -77,7 +77,7 @@ analysis = tune.run(
         min_improvement_ratio=5e-4,
     ),
     config={**mandatory_overrides, **init_space},
-    resources_per_trial=dict(cpu=3, gpu=0.5),
+    resources_per_trial=dict(cpu=3, gpu=0),
     num_samples=num_trials,
     local_dir=RUN_DIR.parent,
     search_alg=BasicVariantGenerator(random_state=0),

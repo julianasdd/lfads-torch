@@ -1,6 +1,6 @@
 defaults:
-  - model: nlb_mc_maze
-  - datamodule: nlb_mc_maze
+  - model: emil_epoch1
+  - datamodule: emil_epoch1
   - callbacks: default
   - _self_
 
@@ -9,6 +9,10 @@ ignore_warnings: False
 
 trainer:
   _target_: pytorch_lightning.Trainer
+  # GPU configs for Apple Silicon (M1)
+  accelerator: mps   # use "cpu" to force CPU
+  devices: 1
+  precision: 32      # keep fp32 on MPS
   gradient_clip_val: 200
   max_epochs: 1_000
   log_every_n_steps: 5

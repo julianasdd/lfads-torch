@@ -1,6 +1,6 @@
 defaults:
-  - model: nlb_mc_maze
-  - datamodule: nlb_mc_maze
+  - model: rouse_multisession_PCR
+  - datamodule: rouse_multisession_PCR
   - callbacks: default
   - _self_
 

@@ -1,0 +1,50 @@
+Failure # 1 (occurred at 2025-08-29_13-19-31)
+[36mray::ImplicitFunc.train()[39m (pid=39933, ip=127.0.0.1, repr=run_model)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/pytorch_lightning/loggers/wandb.py", line 309, in __init__
+    _ = self.experiment
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/pytorch_lightning/loggers/base.py", line 41, in experiment
+    return get_experiment() or DummyExperiment()
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/pytorch_lightning/utilities/rank_zero.py", line 32, in wrapped_fn
+    return fn(*args, **kwargs)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/pytorch_lightning/loggers/base.py", line 39, in get_experiment
+    return fn(self)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/pytorch_lightning/loggers/wandb.py", line 355, in experiment
+    self._experiment = wandb.init(**self._wandb_init)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/sdk/wandb_init.py", line 1595, in init
+    wandb._sentry.reraise(e)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/analytics/sentry.py", line 162, in reraise
+    raise exc.with_traceback(sys.exc_info()[2])
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/sdk/wandb_init.py", line 1523, in init
+    wi.maybe_login(init_settings)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/sdk/wandb_init.py", line 191, in maybe_login
+    wandb_login._login(
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/sdk/wandb_login.py", line 318, in _login
+    key, key_status = wlogin.prompt_api_key(referrer=referrer)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/wandb/sdk/wandb_login.py", line 244, in prompt_api_key
+    raise UsageError("api_key not configured (no-tty). call " + directive)
+wandb.errors.errors.UsageError: api_key not configured (no-tty). call wandb.login(key=[your_api_key])
+
+The above exception was the direct cause of the following exception:
+
+[36mray::ImplicitFunc.train()[39m (pid=39933, ip=127.0.0.1, repr=run_model)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/ray/tune/trainable/trainable.py", line 355, in train
+    raise skipped from exception_cause(skipped)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/ray/tune/trainable/function_trainable.py", line 325, in entrypoint
+    return self._trainable_func(
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/ray/tune/trainable/function_trainable.py", line 651, in _trainable_func
+    output = fn()
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/ray/tune/trainable/util.py", line 365, in inner
+    trainable(config, **fn_kwargs)
+  File "/Users/julianasilvadedeus/Documents/GitHub/lfads-torch/lfads_torch/run_model.py", line 72, in run_model
+    logger=[instantiate(lg) for lg in config.logger.values()],
+  File "/Users/julianasilvadedeus/Documents/GitHub/lfads-torch/lfads_torch/run_model.py", line 72, in <listcomp>
+    logger=[instantiate(lg) for lg in config.logger.values()],
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 226, in instantiate
+    return instantiate_node(
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 347, in instantiate_node
+    return _call_target(_target_, partial, args, kwargs, full_key)
+  File "/Users/julianasilvadedeus/miniforge3/envs/lfads-torch/lib/python3.9/site-packages/hydra/_internal/instantiate/_instantiate2.py", line 97, in _call_target
+    raise InstantiationException(msg) from e
+hydra.errors.InstantiationException: Error in call to target 'pytorch_lightning.loggers.wandb.WandbLogger':
+UsageError('api_key not configured (no-tty). call wandb.login(key=[your_api_key])')
+full_key: logger.wandb_logger

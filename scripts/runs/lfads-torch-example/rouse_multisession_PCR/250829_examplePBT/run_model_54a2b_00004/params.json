@@ -1,0 +1,14 @@
+{
+  "datamodule": "rouse_multisession_PCR",
+  "logger.wandb_logger.project": "lfads-torch-example",
+  "logger.wandb_logger.tags.1": "rouse_multisession_PCR",
+  "logger.wandb_logger.tags.2": "250829_examplePBT",
+  "model": "rouse_multisession_PCR",
+  "model.dropout_rate": 0.29323354596772466,
+  "model.kl_co_scale": 9.934086937149055e-05,
+  "model.kl_ic_scale": 1.1010774399631624e-06,
+  "model.l2_con_scale": 0.030366406342286476,
+  "model.l2_gen_scale": 0.07246453019681802,
+  "model.lr_init": 0.004,
+  "model.train_aug_stack.transforms.0.cd_rate": 0.5
+}

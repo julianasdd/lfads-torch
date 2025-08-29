@@ -1,0 +1,8 @@
+# configs/datamodule/emil_epoch1.yaml
+_target_: lfads_torch.datamodules.BasicDataModule
+
+# Option A: absolute root (safest)
+datafile_pattern: /Users/julianasilvadedeus/Documents/GitHub/lfads-torch/datasets/emil_epoch1/lfads_*.h5
+
+batch_size: 256
+
