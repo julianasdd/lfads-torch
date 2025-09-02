@@ -52,7 +52,9 @@ def run_model(
 
     # Instantiate `LightningDataModule` and `LightningModule`
     datamodule = instantiate(config.datamodule, _convert_="all")
+    print("\n=== MODEL CONFIG (resolved) ===\n" + OmegaConf.to_yaml(config.model))
     model = instantiate(config.model)
+
 
     # If `checkpoint_dir` is passed, find the most recent checkpoint in the directory
     if checkpoint_dir:
